@@ -38,9 +38,9 @@ export default function Login() {
       } else {
         const role = localStorage.getItem("role");
 
-        if (role === "doctor") navigate("/doctor");
-        else if (role === "receptionist") navigate("/receptionist");
-        else if (role === "pharmacist") navigate("/pharmacist");
+        if (role === "doctor") navigate("/");
+        else if (role === "receptionist") navigate("/");
+        else if (role === "pharmacist") navigate("/");
       }
     }
     setLoading(false);

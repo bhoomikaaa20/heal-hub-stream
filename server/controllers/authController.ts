@@ -19,12 +19,13 @@ export const signUp = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "User already exists" });
         }
 
+        // 🔥 THIS IS IMPORTANT
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await User.create({
             username,
             email,
-            password: hashedPassword,
+            password: hashedPassword, // ✅ NOT plain password
             role,
         });
 
@@ -33,6 +34,7 @@ export const signUp = async (req: Request, res: Response) => {
             role: user.role,
         });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -42,12 +44,20 @@ export const signIn = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
+        console.log("Login request:", email, password);
+
         const user = await User.findOne({ email });
+        console.log("User found:", user);
+
         if (!user) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
+        console.log("Stored password:", user.password);
+
         const isMatch = await bcrypt.compare(password, user.password);
+        console.log("Password match:", isMatch);
+
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
@@ -55,9 +65,9 @@ export const signIn = async (req: Request, res: Response) => {
         res.json({
             token: generateToken(user._id.toString()),
             role: user.role,
-            username: user.username,
         });
     } catch (error) {
+        console.log("ERROR:", error); // 🔥 IMPORTANT
         res.status(500).json({ message: "Server error" });
     }
 };
