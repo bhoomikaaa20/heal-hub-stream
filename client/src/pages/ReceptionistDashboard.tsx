@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,22 +30,39 @@ export default function ReceptionistDashboard() {
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("patients").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/patients", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return res.json();
     },
   });
 
   const createPatient = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("patients").insert({
-        patient_id: "",
-        name,
-        age: age ? parseInt(age) : null,
-        gender: gender || null,
-        phone: phone || null,
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/patients", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name,
+          age: age ? parseInt(age) : null,
+          gender: gender || null,
+          phone: phone || null,
+        }),
       });
-      if (error) throw error;
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      return data;
     },
     onSuccess: () => {
       toast.success("Patient registered!");

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,25 +21,35 @@ export default function DoctorDashboard() {
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("patients").select("*").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("http://localhost:5000/api/patients", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return res.json();
     },
   });
 
-  const selected = patients.find(p => p.id === selectedId);
-
+  const selected = patients.find(p => p._id === selectedId);
   const { data: prevConsultations = [] } = useQuery({
     queryKey: ["consultations", selectedId],
     enabled: !!selectedId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("consultations")
-        .select("*")
-        .eq("patient_id", selectedId!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:5000/api/consultations/${selectedId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return res.json();
     },
   });
 
@@ -52,18 +61,25 @@ export default function DoctorDashboard() {
 
   const savePrescription = useMutation({
     mutationFn: async () => {
-      if (!user || !selectedId) return;
-      const { error: consultError } = await supabase.from("consultations").insert({
-        patient_id: selectedId,
-        doctor_id: user.id,
-        prescription,
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("http://localhost:5000/api/consultations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          patient_id: selectedId,
+          prescription,
+        }),
       });
-      if (consultError) throw consultError;
-      const { error: updateError } = await supabase
-        .from("patients")
-        .update({ status: "PRESCRIBED" })
-        .eq("id", selectedId);
-      if (updateError) throw updateError;
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message);
+
+      return data;
     },
     onSuccess: () => {
       toast.success("Prescription saved!");
@@ -107,10 +123,9 @@ export default function DoctorDashboard() {
             {filtered.map(p => (
               <button
                 key={p.id}
-                onClick={() => { setSelectedId(p.id); setPrescription(""); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center justify-between ${
-                  selectedId === p.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
-                }`}
+                onClick={() => { setSelectedId(p._id); setPrescription(""); }}
+                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center justify-between ${selectedId === p.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
+                  }`}
               >
                 <div>
                   <p className="font-medium text-sm">{p.name}</p>

@@ -1,8 +1,12 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
 
 type Role = "receptionist" | "doctor" | "pharmacist";
+
+interface User {
+  email: string;
+  role: Role;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, role: Role, username: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -20,64 +24,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .single();
-    return (data?.role as Role) ?? null;
-  };
-
+  // 🔥 Load from localStorage (IMPORTANT)
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        const r = await fetchRole(session.user.id);
-        setRole(r);
-      } else {
-        setUser(null);
-        setRole(null);
-      }
-      setLoading(false);
-    });
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role") as Role;
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user);
-        const r = await fetchRole(session.user.id);
-        setRole(r);
-      }
-      setLoading(false);
-    });
+    if (token && role) {
+      setUser({ email: "", role }); // email optional
+      setRole(role);
+    }
 
-    return () => subscription.unsubscribe();
+    setLoading(false);
   }, []);
 
+  // 🔐 LOGIN
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
-  };
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-  const signUp = async (email: string, password: string, role: Role, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } },
-    });
-    if (error) return { error: error.message };
-    if (data.user) {
-      // Insert role
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: data.user.id, role });
-      if (roleError) return { error: roleError.message };
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { error: data.message };
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role);
+
+      setUser({ email, role: data.role });
+      setRole(data.role);
+
+      return { error: null };
+    } catch {
+      return { error: "Something went wrong" };
     }
-    return { error: null };
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  // 🆕 SIGNUP
+  const signUp = async (email: string, password: string, role: Role, username: string) => {
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password, role, username }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { error: data.message };
+      }
+
+      return { error: null };
+    } catch {
+      return { error: "Signup failed" };
+    }
+  };
+
+  // 🚪 LOGOUT
+  const signOut = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    setUser(null);
+    setRole(null);
   };
 
   return (

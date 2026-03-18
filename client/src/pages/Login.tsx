@@ -32,10 +32,15 @@ export default function Login() {
       }
     } else {
       const { error } = await signIn(email, password);
+
       if (error) {
         toast.error(error);
       } else {
-        navigate("/");
+        const role = localStorage.getItem("role");
+
+        if (role === "doctor") navigate("/doctor");
+        else if (role === "receptionist") navigate("/receptionist");
+        else if (role === "pharmacist") navigate("/pharmacist");
       }
     }
     setLoading(false);
