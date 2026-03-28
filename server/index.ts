@@ -34,6 +34,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/visits", visitRoutes);
 
+
 app.get("/api/test", (req, res) => {
   res.send("TEST WORKING");
 });

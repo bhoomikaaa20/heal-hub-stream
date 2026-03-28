@@ -1,17 +1,24 @@
 import { Request, Response } from "express";
 import Visit from "../models/Visit";
 
-export const createVisit = async (req: Request, res: Response) => {
+// 🔥 UPDATE STATUS TO IN_PROGRESS
+export const sendToDoctor = async (req: Request, res: Response) => {
     try {
-        const { patient_id, doctor_id } = req.body;
+        const { patient_id } = req.body;
 
-        const visit = await Visit.create({
-            patient_id,
-            doctor_id,
-        });
+        const visit = await Visit.findOne({ patient_id })
+            .sort({ createdAt: -1 });
 
-        res.json(visit);
-    } catch {
-        res.status(500).json({ message: "Error creating visit" });
+        if (!visit) {
+            return res.status(404).json({ message: "Visit not found" });
+        }
+
+        visit.status = "IN_PROGRESS";
+        await visit.save();
+
+        res.json({ message: "Patient sent to doctor" });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Error updating status" });
     }
 };

@@ -1,8 +1,8 @@
 import express from "express";
-import { createVisit } from "../controllers/visitController";
+import { sendToDoctor } from "../controllers/visitController";
 
 const router = express.Router();
 
-router.post("/", createVisit);
+router.put("/send", sendToDoctor);
 
 export default router;

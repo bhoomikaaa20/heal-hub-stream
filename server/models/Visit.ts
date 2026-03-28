@@ -17,6 +17,12 @@ const visitSchema = new mongoose.Schema(
             enum: ["WAITING", "IN_PROGRESS", "COMPLETED"],
             default: "WAITING",
         },
+        payment_required: Boolean,
+        payment_mode: {
+            type: String,
+            enum: ["CASH", "ONLINE", null],
+            default: null,
+        },
     },
     { timestamps: true }
 );
