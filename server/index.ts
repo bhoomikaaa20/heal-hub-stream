@@ -10,6 +10,8 @@ import authRoutes from "./routes/authRoutes";
 import billRoutes from "./routes/billRoutes";
 import visitRoutes from "./routes/visitRoutes";
 import doctorRoutes from "./routes/doctorRoutes";
+import medicineRoutes from "./routes/medicineRoutes";
+
 
 
 
@@ -33,6 +35,7 @@ app.use("/api/consultations", consultationRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/visits", visitRoutes);
+app.use("/api/medicines", medicineRoutes);
 
 
 app.get("/api/test", (req, res) => {
