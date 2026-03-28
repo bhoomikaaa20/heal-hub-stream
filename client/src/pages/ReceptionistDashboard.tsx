@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -25,22 +26,25 @@ export default function ReceptionistDashboard() {
   const [gender, setGender] = useState("");
   const [phone, setPhone] = useState("");
   const [search, setSearch] = useState("");
+
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [doctorId, setDoctorId] = useState("");
+
   const qc = useQueryClient();
 
+  // 🔥 Fetch Patients
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
       const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:5000/api/patients", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token} ` },
       });
-
       return res.json();
     },
   });
 
+  // 🔥 Create Patient
   const createPatient = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem("token");
@@ -48,7 +52,7 @@ export default function ReceptionistDashboard() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token} `,
         },
         body: JSON.stringify({
           name,
@@ -59,9 +63,7 @@ export default function ReceptionistDashboard() {
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message);
-
       return data;
     },
     onSuccess: () => {
@@ -72,7 +74,47 @@ export default function ReceptionistDashboard() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtered = patients.filter(p =>
+  // 🔥 Fetch Doctors
+  const { data: doctors = [] } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/doctors", {
+        headers: { Authorization: `Bearer ${token} ` },
+      });
+      return res.json();
+    },
+  });
+
+
+
+  // 🔥 Create Visit
+  const createVisit = useMutation({
+    mutationFn: async () => {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("http://localhost:5000/api/visits", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token} `,
+        },
+        body: JSON.stringify({
+          patient_id: selectedPatientId,
+          doctor_id: doctorId,
+        }),
+      });
+
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Visit sent to doctor!");
+      setSelectedPatientId(null);
+      setDoctorId("");
+    },
+  });
+
+  const filtered = patients.filter((p: any) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.patient_id.toLowerCase().includes(search.toLowerCase())
   );
@@ -80,6 +122,8 @@ export default function ReceptionistDashboard() {
   return (
     <AppLayout>
       <div className="grid gap-6 lg:grid-cols-3">
+
+        {/* 🔥 Register Patient */}
         <Card className="lg:col-span-1 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -87,83 +131,113 @@ export default function ReceptionistDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={e => { e.preventDefault(); createPatient.mutate(); }} className="space-y-3">
-              <div className="space-y-1.5">
+            <form onSubmit={(e) => { e.preventDefault(); createPatient.mutate(); }} className="space-y-3">
+
+              <div>
                 <Label>Name *</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} required placeholder="Patient name" autoFocus />
+                <Input value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Age</Label>
-                  <Input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="Age" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Gender</Label>
-                  <Select value={gender} onValueChange={setGender}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Input type="number" placeholder="Age" value={age} onChange={(e) => setAge(e.target.value)} />
+                <Select value={gender} onValueChange={setGender}>
+                  <SelectTrigger><SelectValue placeholder="Gender" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>Phone</Label>
-                <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone number" />
-              </div>
-              <Button type="submit" className="w-full" disabled={createPatient.isPending}>
+
+              <Input placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+
+              <Button className="w-full">
                 {createPatient.isPending ? "Registering..." : "Register Patient"}
               </Button>
+
             </form>
           </CardContent>
         </Card>
 
+        {/* 🔥 Patient List */}
         <Card className="lg:col-span-2 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Patient List</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or ID..." className="pl-9" />
-            </div>
+            <CardTitle>Patient List</CardTitle>
+            <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </CardHeader>
+
           <CardContent>
-            {isLoading ? (
-              <p className="text-muted-foreground text-sm">Loading...</p>
-            ) : filtered.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No patients found.</p>
-            ) : (
-              <div className="overflow-auto max-h-[60vh]">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-4 font-medium">ID</th>
-                      <th className="py-2 pr-4 font-medium">Name</th>
-                      <th className="py-2 pr-4 font-medium">Age</th>
-                      <th className="py-2 pr-4 font-medium">Gender</th>
-                      <th className="py-2 pr-4 font-medium">Phone</th>
-                      <th className="py-2 font-medium">Status</th>
+            {isLoading ? "Loading..." : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filtered.map((p: any) => (
+                    <tr key={p._id}>
+                      <td>{p.patient_id}</td>
+                      <td>{p.name}</td>
+                      <td>{p.age}</td>
+                      <td>{p.gender}</td>
+                      <td>{p.phone}</td>
+                      <td><StatusBadge status={p.status} /></td>
+
+                      <td>
+                        <Button size="sm" onClick={() => setSelectedPatientId(p._id)}>
+                          Create Visit
+                        </Button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map(p => (
-                      <tr key={p.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                        <td className="py-2.5 pr-4 font-mono text-xs">{p.patient_id}</td>
-                        <td className="py-2.5 pr-4 font-medium">{p.name}</td>
-                        <td className="py-2.5 pr-4">{p.age ?? "—"}</td>
-                        <td className="py-2.5 pr-4">{p.gender ?? "—"}</td>
-                        <td className="py-2.5 pr-4">{p.phone ?? "—"}</td>
-                        <td className="py-2.5"><StatusBadge status={p.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* 🔥 Visit UI */}
+            {selectedPatientId && (
+              <div className="mt-4 p-4 border rounded">
+                <h3>Select Doctor</h3>
+
+                <select
+                  className="border p-2 w-full mb-2"
+                  value={doctorId}
+                  onChange={(e) => setDoctorId(e.target.value)}
+                >
+                  <option value="">Select Doctor</option>
+                  {doctors.map((d: any) => (
+                    <option key={d._id} value={d._id}>
+                      {d.username}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex gap-2">
+                  <Button onClick={() => createVisit.mutate()} disabled={!doctorId}>
+                    Send to Doctor
+                  </Button>
+
+                  <Button variant="outline" onClick={() => setSelectedPatientId(null)}>
+                    Cancel
+                  </Button>
+                </div>
               </div>
             )}
+
           </CardContent>
         </Card>
+
       </div>
     </AppLayout>
   );
 }
+
