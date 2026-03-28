@@ -116,7 +116,8 @@ export default function ReceptionistDashboard() {
 
   const filtered = patients.filter((p: any) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.patient_id.toLowerCase().includes(search.toLowerCase())
+    p.patient_id.toLowerCase().includes(search.toLowerCase()) ||
+    (p.phone && p.phone.includes(search))
   );
 
   return (
