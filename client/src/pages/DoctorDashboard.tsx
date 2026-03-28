@@ -1,201 +1,297 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
+import AppLayout from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, FileText, Send } from "lucide-react";
 import { toast } from "sonner";
-import AppLayout from "@/components/AppLayout";
 
 export default function DoctorDashboard() {
-  const { user } = useAuth();
-  const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [prescription, setPrescription] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [selected, setSelected] = useState<any>(null);
+  const [diagnosis, setDiagnosis] = useState("");
+  const [notes, setNotes] = useState("");
+  const [medicineInput, setMedicineInput] = useState("");
+  const [prescription, setPrescription] = useState<string[]>([]);
+
   const qc = useQueryClient();
 
-  const { data: patients = [] } = useQuery({
-    queryKey: ["patients"],
-    queryFn: async () => {
-      const token = localStorage.getItem("token");
+  // ✅ HARD CODED MEDICINES
+  const medicines = [
+    "Paracetamol",
+    "Ibuprofen",
+    "Amoxicillin",
+    "Aspirin",
+    "Cetirizine",
+    "Azithromycin",
+    "Metformin",
+    "Omeprazole",
+    "Dolo 650",
+  ];
 
-      const res = await fetch("http://localhost:5000/api/patients", {
+  // ✅ FILTERED MEDICINES
+  const filteredMedicines = medicines.filter((m) =>
+    m.toLowerCase().includes(medicineInput.toLowerCase())
+  );
+
+  // 🔥 FETCH QUEUE
+  const { data: visits = [] } = useQuery({
+    queryKey: ["doctor-queue"],
+    queryFn: async () => {
+      const res = await fetch("http://localhost:5000/api/doctors/queue", {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
 
+      if (!res.ok) throw new Error("Failed to fetch queue");
       return res.json();
     },
   });
 
-  const selected = patients.find(p => p._id === selectedId);
-  const { data: prevConsultations = [] } = useQuery({
-    queryKey: ["consultations", selectedId],
-    enabled: !!selectedId,
+  // 🔥 FETCH HISTORY
+  const { data: history = [] } = useQuery({
+    queryKey: ["doctor-history", selected?._id], // ✅ important
     queryFn: async () => {
-      const token = localStorage.getItem("token");
+      if (!selected) return [];
 
       const res = await fetch(
-        `http://localhost:5000/api/consultations/${selectedId}`,
+        `http://localhost:5000/api/doctors/history?patient_id=${selected.patient_id._id}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
 
+      if (!res.ok) throw new Error("Failed to fetch history");
+
       return res.json();
+    },
+    enabled: !!selected, // ✅ only run when patient selected
+  });
+
+  // 🔥 SAVE CONSULTATION
+  const saveConsultation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(
+        "http://localhost:5000/api/doctors/consultation",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            patient_id: selected.patient_id._id,
+            visit_id: selected._id,
+            diagnosis,
+            prescription,
+            notes,
+          }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to save");
+
+      return res.json();
+    },
+
+    onSuccess: () => {
+      toast.success("Saved");
+      qc.invalidateQueries({ queryKey: ["doctor-history"] });
+    },
+
+    onError: () => {
+      toast.error("Failed to save");
     },
   });
 
-  useEffect(() => {
-    if (selectedId && textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, [selectedId]);
-
-  const savePrescription = useMutation({
+  // 🔥 SEND TO PHARMACY
+  const sendToPharmacy = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch("http://localhost:5000/api/consultations", {
-        method: "POST",
+      const res = await fetch("http://localhost:5000/api/doctors/send", {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
-          patient_id: selectedId,
-          prescription,
+          visit_id: selected._id,
         }),
       });
 
-      const data = await res.json();
+      if (!res.ok) throw new Error("Failed");
 
-      if (!res.ok) throw new Error(data.message);
-
-      return data;
+      return res.json();
     },
+
     onSuccess: () => {
-      toast.success("Prescription saved!");
-      setPrescription("");
-      qc.invalidateQueries({ queryKey: ["patients"] });
-      qc.invalidateQueries({ queryKey: ["consultations", selectedId] });
+      toast.success("Sent to pharmacy");
+      setSelected(null);
+      qc.invalidateQueries({ queryKey: ["doctor-queue"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+
+    onError: () => {
+      toast.error("Failed to send");
+    },
   });
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.ctrlKey && e.key === "Enter" && prescription.trim()) {
-      savePrescription.mutate();
-    }
-  };
-
-  const filtered = patients.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.patient_id.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const statusColors: Record<string, string> = {
-    NEW: "bg-status-new/15 text-status-new border-status-new/30",
-    PRESCRIBED: "bg-status-prescribed/15 text-status-prescribed border-status-prescribed/30",
-    COMPLETED: "bg-status-completed/15 text-status-completed border-status-completed/30",
-  };
 
   return (
     <AppLayout>
-      <div className="grid gap-6 lg:grid-cols-5 h-[calc(100vh-6rem)]">
-        {/* Patient List */}
-        <Card className="lg:col-span-2 shadow-sm flex flex-col">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Patients</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-9" />
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-auto space-y-1 pt-0">
-            {filtered.map(p => (
-              <button
-                key={p.id}
-                onClick={() => { setSelectedId(p._id); setPrescription(""); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center justify-between ${selectedId === p.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
-                  }`}
-              >
-                <div>
-                  <p className="font-medium text-sm">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.patient_id} · {p.age ? `${p.age}y` : ""} {p.gender ?? ""}</p>
-                </div>
-                <Badge variant="outline" className={statusColors[p.status] ?? ""}>{p.status}</Badge>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-5 gap-4 h-[90vh]">
 
-        {/* Prescription Panel */}
-        <Card className="lg:col-span-3 shadow-sm flex flex-col">
+        {/* 🔥 LEFT: QUEUE */}
+        <div className="col-span-2 border rounded p-2 overflow-auto">
+          <h2 className="font-bold mb-2">Queue</h2>
+
+          {visits.map((v: any) => (
+            <div
+              key={v._id}
+              onClick={() => {
+                setSelected(v);
+                setPrescription([]);
+                setDiagnosis("");
+                setNotes("");
+              }}
+              className="p-2 border-b cursor-pointer hover:bg-muted"
+            >
+              <p>{v.patient_id.name}</p>
+              <p className="text-xs text-gray-500">
+                {v.patient_id.patient_id}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* 🔥 RIGHT: DETAILS */}
+        <div className="col-span-3 border rounded p-4 flex flex-col gap-3 overflow-auto">
+
           {selected ? (
             <>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">{selected.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {selected.patient_id} · {selected.age ? `${selected.age} years` : ""} {selected.gender ? `· ${selected.gender}` : ""}
-                      {selected.phone ? ` · ${selected.phone}` : ""}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className={statusColors[selected.status] ?? ""}>{selected.status}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col gap-4">
-                <div className="flex-1 flex flex-col">
-                  <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
-                    <FileText className="h-4 w-4 text-primary" /> Prescription
-                  </label>
-                  <Textarea
-                    ref={textareaRef}
-                    value={prescription}
-                    onChange={e => setPrescription(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Tab Paracetamol 650mg - 1-0-1 for 5 days&#10;Syp Amoxicillin 250mg/5ml - 5ml TDS for 7 days"
-                    className="flex-1 min-h-[200px] resize-none text-sm font-mono"
-                  />
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-xs text-muted-foreground">Ctrl + Enter to save</span>
-                    <Button onClick={() => savePrescription.mutate()} disabled={!prescription.trim() || savePrescription.isPending} className="gap-2">
-                      <Send className="h-4 w-4" />
-                      {savePrescription.isPending ? "Saving..." : "Save Prescription"}
-                    </Button>
-                  </div>
-                </div>
+              <h2 className="font-bold text-lg">
+                {selected.patient_id.name}
+              </h2>
 
-                {prevConsultations.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 text-muted-foreground">Previous Prescriptions</h4>
-                    <div className="space-y-2 max-h-40 overflow-auto">
-                      {prevConsultations.map(c => (
-                        <div key={c.id} className="bg-muted/50 rounded-lg p-3 text-sm">
-                          <p className="text-xs text-muted-foreground mb-1">{new Date(c.created_at).toLocaleDateString()}</p>
-                          <p className="font-mono text-xs whitespace-pre-wrap">{c.prescription}</p>
+              {/* 🔥 MEDICINE SEARCH */}
+              <div className="relative">
+                <Input
+                  placeholder="Search medicine..."
+                  value={medicineInput}
+                  onChange={(e) => setMedicineInput(e.target.value)}
+                />
+
+                {medicineInput && (
+                  <div className="absolute top-10 w-full border bg-white shadow rounded max-h-40 overflow-auto z-10">
+                    {filteredMedicines.length > 0 ? (
+                      filteredMedicines.map((m, i) => (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            if (!prescription.includes(m)) {
+                              setPrescription([...prescription, m]);
+                            }
+                            setMedicineInput("");
+                          }}
+                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                        >
+                          {m}
                         </div>
-                      ))}
-                    </div>
+                      ))
+                    ) : (
+                      <p className="p-2 text-sm text-gray-500">
+                        No medicines found
+                      </p>
+                    )}
                   </div>
                 )}
-              </CardContent>
+              </div>
+
+              {/* 🔥 PRESCRIPTION */}
+              <div className="border p-2 rounded">
+                {prescription.map((m, i) => (
+                  <p
+                    key={i}
+                    className="cursor-pointer"
+                    onClick={() =>
+                      setPrescription(
+                        prescription.filter((_, index) => index !== i)
+                      )
+                    }
+                  >
+                    {m}
+                  </p>
+                ))}
+              </div>
+
+              {/* 🔥 DIAGNOSIS */}
+              <Textarea
+                placeholder="Diagnosis"
+                value={diagnosis}
+                onChange={(e) => setDiagnosis(e.target.value)}
+              />
+
+              {/* 🔥 NOTES */}
+              <Textarea
+                placeholder="Notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+
+              {/* 🔥 BUTTONS */}
+              <div className="flex gap-2">
+                <Button onClick={() => saveConsultation.mutate()}>
+                  Save
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => sendToPharmacy.mutate()}
+                >
+                  Send to Pharmacy
+                </Button>
+              </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <p>Select a patient to write a prescription</p>
+            <p>Select a patient</p>
+          )}
+
+          {/* 🔥 HISTORY SECTION */}
+          {selected && (
+            <div className="border rounded p-3 mt-4">
+              <h2 className="font-bold mb-2">
+                {selected.patient_id.name}'s History
+              </h2>
+
+              {history.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No history found for this patient
+                </p>
+              ) : (
+                history.map((h: any) => (
+                  <div key={h._id} className="border p-2 mb-2 rounded">
+                    <p className="font-semibold">{h.patient_id?.name}</p>
+
+                    <p className="text-sm">
+                      <b>Diagnosis:</b> {h.diagnosis}
+                    </p>
+
+                    <p className="text-sm">
+                      <b>Prescription:</b> {h.prescription.join(", ")}
+                    </p>
+
+                    <p className="text-sm">
+                      <b>Notes:</b> {h.notes}
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      {new Date(h.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                ))
+              )}
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </AppLayout>
   );
