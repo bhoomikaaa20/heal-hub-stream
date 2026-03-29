@@ -14,8 +14,8 @@ const visitSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["WAITING", "IN_PROGRESS", "COMPLETED"],
-            default: "WAITING",
+            enum: ["NEW", "WAITING", "IN_PROGRESS", "COMPLETED"], // ✅ updated
+            default: "NEW", // ✅ changed
         },
         payment_required: Boolean,
         payment_mode: {
@@ -26,5 +26,4 @@ const visitSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-
 export default mongoose.model("Visit", visitSchema);

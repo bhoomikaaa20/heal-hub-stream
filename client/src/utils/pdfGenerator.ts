@@ -43,7 +43,6 @@ export const generateInvoicePDF = ({
 
     // 👤 DETAILS
     doc.text(`Patient: ${patientName}`, 14, 40);
-    doc.text(`Doctor: ${doctorName || "N/A"}`, 14, 46);
 
     // 💊 TABLE
     const tableData = items.map((item) => [
@@ -76,7 +75,7 @@ export const generateInvoicePDF = ({
     // 🙏 FOOTER
     doc.setFontSize(10);
     doc.setTextColor("#777");
-    doc.text("Thank you for choosing HealHub 💙", 14, finalY + 25);
+    doc.text("Thank you for choosing MedFlow!!!!!", 14, finalY + 25);
 
     // 💾 SAVE
     doc.save(`Bill_${patientName}.pdf`);

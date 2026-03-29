@@ -108,7 +108,7 @@ export const getPatients = async (req: Request, res: Response) => {
 
                 return {
                     ...p.toObject(),
-                    status: latestVisit?.status || "WAITING",
+                    status: latestVisit?.status || "NEW",
                 };
             })
         );

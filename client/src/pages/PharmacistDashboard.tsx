@@ -3,16 +3,32 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Trash2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
 import { generateInvoicePDF } from "@/utils/pdfGenerator";
-import jsPDF from "jspdf";
 
 interface BillItem {
   medicineName: string;
   quantity: number;
   price: number;
+}
+
+/* ✅ STATUS BADGE (same as receptionist) */
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    NEW: "bg-status-new/15 text-status-new border-status-new/30",
+    PRESCRIBED: "bg-status-prescribed/15 text-status-prescribed border-status-prescribed/30",
+    IN_PROGRESS: "bg-yellow-100 text-yellow-700 border-yellow-300",
+    COMPLETED: "bg-status-completed/15 text-status-completed border-status-completed/30",
+  };
+
+  return (
+    <Badge variant="outline" className={colors[status] ?? ""}>
+      {status}
+    </Badge>
+  );
 }
 
 export default function PharmacistDashboard() {
@@ -21,17 +37,15 @@ export default function PharmacistDashboard() {
   const [items, setItems] = useState<BillItem[]>([]);
   const [paymentMode, setPaymentMode] = useState("CASH");
 
-  // 🔥 GLOBAL SEARCH
   const [medicineSearch, setMedicineSearch] = useState("");
 
-  // 🔥 ADD MEDICINE FORM
   const [medName, setMedName] = useState("");
   const [medPrice, setMedPrice] = useState(0);
   const [medQty, setMedQty] = useState(0);
 
   const qc = useQueryClient();
 
-  // 🔥 GET PATIENTS
+  // ✅ GET PATIENTS
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
@@ -40,17 +54,18 @@ export default function PharmacistDashboard() {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
+
       const data = await res.json();
-      return data.filter(
-        (p: any) =>
-          p.status === "PRESCRIBED" || p.status === "COMPLETED"
+
+      return data.filter((p: any) =>
+        ["PRESCRIBED", "IN_PROGRESS"].includes(p.status)
       );
     },
   });
 
   const selected = patients.find((p: any) => p._id === selectedId);
 
-  // 🔥 GET CONSULTATION
+  // ✅ GET CONSULTATION
   const { data: consultation } = useQuery({
     queryKey: ["consultation", selectedId],
     enabled: !!selectedId,
@@ -68,7 +83,7 @@ export default function PharmacistDashboard() {
     },
   });
 
-  // 🔥 GET MEDICINES
+  // ✅ GET MEDICINES
   const { data: medicines = [] } = useQuery({
     queryKey: ["medicines"],
     queryFn: async () => {
@@ -99,7 +114,7 @@ export default function PharmacistDashboard() {
     setItems(updated);
   };
 
-  // 🔥 ADD MEDICINE
+  // ✅ ADD MEDICINE
   const addMedicineMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("http://localhost:5000/api/medicines", {
@@ -128,7 +143,7 @@ export default function PharmacistDashboard() {
     onError: () => toast.error("Error adding medicine"),
   });
 
-  // 🔥 PDF
+  // ✅ PDF
   const generatePDF = () => {
     generateInvoicePDF({
       patientName: selected?.name || "Unknown",
@@ -139,7 +154,7 @@ export default function PharmacistDashboard() {
     });
   };
 
-  // 🔥 BILLING
+  // ✅ BILLING
   const completeBilling = useMutation({
     mutationFn: async () => {
       const res = await fetch("http://localhost:5000/api/bills", {
@@ -187,7 +202,6 @@ export default function PharmacistDashboard() {
         {/* LEFT PANEL */}
         <Card className="lg:col-span-2 flex flex-col gap-4 p-4">
 
-          {/* PATIENTS */}
           <div>
             <h2 className="font-bold mb-2">Patients</h2>
 
@@ -204,12 +218,17 @@ export default function PharmacistDashboard() {
                   key={p._id}
                   onClick={() => {
                     setSelectedId(p._id);
-                    setItems([]); // reset items
+                    setItems([]);
                   }}
-                  className="p-2 border-b cursor-pointer hover:bg-gray-100"
+                  className="p-2 border-b cursor-pointer hover:bg-gray-100 flex justify-between items-center"
                 >
-                  <p>{p.name}</p>
-                  <p className="text-xs text-gray-500">{p.patient_id}</p>
+                  <div>
+                    <p>{p.name}</p>
+                    <p className="text-xs text-gray-500">{p.patient_id}</p>
+                  </div>
+
+                  {/* ✅ STATUS BADGE */}
+                  <StatusBadge status={p.status} />
                 </div>
               ))}
             </div>
@@ -260,9 +279,12 @@ export default function PharmacistDashboard() {
           {selected && consultation ? (
             <CardContent className="flex flex-col gap-4">
 
-              <h2 className="font-bold">{selected.name}</h2>
+              {/* ✅ NAME + STATUS PARALLEL */}
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold text-lg">{selected.name}</h2>
+                <StatusBadge status={selected.status} />
+              </div>
 
-              {/* DOCTOR DETAILS */}
               <div className="border p-3 bg-gray-50 rounded">
                 <p><b>Diagnosis:</b> {consultation.diagnosis}</p>
 
@@ -276,7 +298,7 @@ export default function PharmacistDashboard() {
                 </p>
               </div>
 
-              {/* 🔥 GLOBAL SEARCH */}
+              {/* SEARCH MEDICINE */}
               <div className="relative">
                 <Input
                   placeholder="Search medicine..."
@@ -323,11 +345,7 @@ export default function PharmacistDashboard() {
                     type="number"
                     value={item.quantity}
                     onChange={(e) =>
-                      updateItem(
-                        idx,
-                        "quantity",
-                        parseInt(e.target.value) || 0
-                      )
+                      updateItem(idx, "quantity", parseInt(e.target.value) || 0)
                     }
                   />
 
@@ -335,11 +353,7 @@ export default function PharmacistDashboard() {
                     type="number"
                     value={item.price}
                     onChange={(e) =>
-                      updateItem(
-                        idx,
-                        "price",
-                        parseFloat(e.target.value) || 0
-                      )
+                      updateItem(idx, "price", parseFloat(e.target.value) || 0)
                     }
                   />
 
@@ -349,7 +363,6 @@ export default function PharmacistDashboard() {
                 </div>
               ))}
 
-              {/* PAYMENT */}
               <select
                 value={paymentMode}
                 onChange={(e) => setPaymentMode(e.target.value)}

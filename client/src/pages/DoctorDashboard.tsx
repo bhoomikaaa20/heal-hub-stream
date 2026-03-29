@@ -10,28 +10,25 @@ export default function DoctorDashboard() {
   const [selected, setSelected] = useState<any>(null);
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
-  const [medicineInput, setMedicineInput] = useState("");
+  const [medicineSearch, setMedicineSearch] = useState("");
   const [prescription, setPrescription] = useState<string[]>([]);
 
   const qc = useQueryClient();
 
-  // ✅ HARD CODED MEDICINES
-  const medicines = [
-    "Paracetamol",
-    "Ibuprofen",
-    "Amoxicillin",
-    "Aspirin",
-    "Cetirizine",
-    "Azithromycin",
-    "Metformin",
-    "Omeprazole",
-    "Dolo 650",
-  ];
+  // 🔥 FETCH MEDICINES FROM DB
+  const { data: medicines = [] } = useQuery({
+    queryKey: ["medicines"],
+    queryFn: async () => {
+      const res = await fetch("http://localhost:5000/api/medicines", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
-  // ✅ FILTERED MEDICINES
-  const filteredMedicines = medicines.filter((m) =>
-    m.toLowerCase().includes(medicineInput.toLowerCase())
-  );
+      if (!res.ok) throw new Error("Failed to fetch medicines");
+      return res.json();
+    },
+  });
 
   // 🔥 FETCH QUEUE
   const { data: visits = [] } = useQuery({
@@ -50,7 +47,7 @@ export default function DoctorDashboard() {
 
   // 🔥 FETCH HISTORY
   const { data: history = [] } = useQuery({
-    queryKey: ["doctor-history", selected?._id], // ✅ important
+    queryKey: ["doctor-history", selected?._id],
     queryFn: async () => {
       if (!selected) return [];
 
@@ -64,10 +61,9 @@ export default function DoctorDashboard() {
       );
 
       if (!res.ok) throw new Error("Failed to fetch history");
-
       return res.json();
     },
-    enabled: !!selected, // ✅ only run when patient selected
+    enabled: !!selected,
   });
 
   // 🔥 SAVE CONSULTATION
@@ -92,7 +88,6 @@ export default function DoctorDashboard() {
       );
 
       if (!res.ok) throw new Error("Failed to save");
-
       return res.json();
     },
 
@@ -101,9 +96,7 @@ export default function DoctorDashboard() {
       qc.invalidateQueries({ queryKey: ["doctor-history"] });
     },
 
-    onError: () => {
-      toast.error("Failed to save");
-    },
+    onError: () => toast.error("Failed to save"),
   });
 
   // 🔥 SEND TO PHARMACY
@@ -121,7 +114,6 @@ export default function DoctorDashboard() {
       });
 
       if (!res.ok) throw new Error("Failed");
-
       return res.json();
     },
 
@@ -131,9 +123,7 @@ export default function DoctorDashboard() {
       qc.invalidateQueries({ queryKey: ["doctor-queue"] });
     },
 
-    onError: () => {
-      toast.error("Failed to send");
-    },
+    onError: () => toast.error("Failed to send"),
   });
 
   return (
@@ -163,7 +153,7 @@ export default function DoctorDashboard() {
           ))}
         </div>
 
-        {/* 🔥 RIGHT: DETAILS */}
+        {/* 🔥 RIGHT */}
         <div className="col-span-3 border rounded p-4 flex flex-col gap-3 overflow-auto">
 
           {selected ? (
@@ -172,36 +162,36 @@ export default function DoctorDashboard() {
                 {selected.patient_id.name}
               </h2>
 
-              {/* 🔥 MEDICINE SEARCH */}
+              {/* 🔥 GLOBAL MEDICINE SEARCH */}
               <div className="relative">
                 <Input
                   placeholder="Search medicine..."
-                  value={medicineInput}
-                  onChange={(e) => setMedicineInput(e.target.value)}
+                  value={medicineSearch}
+                  onChange={(e) => setMedicineSearch(e.target.value)}
                 />
 
-                {medicineInput && (
+                {medicineSearch && (
                   <div className="absolute top-10 w-full border bg-white shadow rounded max-h-40 overflow-auto z-10">
-                    {filteredMedicines.length > 0 ? (
-                      filteredMedicines.map((m, i) => (
+                    {medicines
+                      .filter((m: any) =>
+                        m.name
+                          .toLowerCase()
+                          .includes(medicineSearch.toLowerCase())
+                      )
+                      .map((m: any) => (
                         <div
-                          key={i}
+                          key={m._id}
                           onClick={() => {
-                            if (!prescription.includes(m)) {
-                              setPrescription([...prescription, m]);
+                            if (!prescription.includes(m.name)) {
+                              setPrescription([...prescription, m.name]);
                             }
-                            setMedicineInput("");
+                            setMedicineSearch("");
                           }}
                           className="p-2 hover:bg-gray-100 cursor-pointer"
                         >
-                          {m}
+                          {m.name} (₹{m.price})
                         </div>
-                      ))
-                    ) : (
-                      <p className="p-2 text-sm text-gray-500">
-                        No medicines found
-                      </p>
-                    )}
+                      ))}
                   </div>
                 )}
               </div>
@@ -209,17 +199,22 @@ export default function DoctorDashboard() {
               {/* 🔥 PRESCRIPTION */}
               <div className="border p-2 rounded">
                 {prescription.map((m, i) => (
-                  <p
+                  <div
                     key={i}
-                    className="cursor-pointer"
-                    onClick={() =>
-                      setPrescription(
-                        prescription.filter((_, index) => index !== i)
-                      )
-                    }
+                    className="flex justify-between items-center"
                   >
-                    {m}
-                  </p>
+                    <p>{m}</p>
+                    <button
+                      className="text-red-500"
+                      onClick={() =>
+                        setPrescription(
+                          prescription.filter((_, idx) => idx !== i)
+                        )
+                      }
+                    >
+                      ❌
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -255,7 +250,7 @@ export default function DoctorDashboard() {
             <p>Select a patient</p>
           )}
 
-          {/* 🔥 HISTORY SECTION */}
+          {/* 🔥 HISTORY */}
           {selected && (
             <div className="border rounded p-3 mt-4">
               <h2 className="font-bold mb-2">

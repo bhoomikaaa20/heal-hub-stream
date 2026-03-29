@@ -31,9 +31,13 @@ export const createBill = async (req: Request, res: Response) => {
             payment_mode,
         });
 
-        await Patient.findByIdAndUpdate(patient_id, {
-            status: "COMPLETED",
-        });
+        await Patient.findOneAndUpdate(
+            { _id: patient_id },
+            { status: "COMPLETED" },
+
+        );
+
+        console.log("Patient marked COMPLETED:", patient_id);
 
         res.json(bill);
     } catch (error) {

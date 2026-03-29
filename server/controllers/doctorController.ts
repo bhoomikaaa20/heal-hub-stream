@@ -27,7 +27,7 @@ export const getDoctorQueue = async (req: any, res: Response) => {
         const doctor_id = req.user.id; // ✅ from JWT
 
         const visits = await Visit.find({
-            status: "IN_PROGRESS",
+            status: "WAITING",
             doctor_id: doctor_id,
         })
             .populate("patient_id")
@@ -68,7 +68,7 @@ export const sendToPharmacy = async (req: Request, res: Response) => {
         const { visit_id } = req.body;
 
         await Visit.findByIdAndUpdate(visit_id, {
-            status: "COMPLETED",
+            status: "IN_PROGRESS",
         });
 
         res.json({ message: "Sent to pharmacy" });

@@ -13,7 +13,7 @@ export const sendToDoctor = async (req: Request, res: Response) => {
             return res.status(404).json({ message: "Visit not found" });
         }
 
-        visit.status = "IN_PROGRESS";
+        visit.status = "WAITING";
         await visit.save();
 
         res.json({ message: "Patient sent to doctor" });

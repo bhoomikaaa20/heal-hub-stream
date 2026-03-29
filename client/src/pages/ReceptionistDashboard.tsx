@@ -37,6 +37,7 @@ export default function ReceptionistDashboard() {
   useEffect(() => {
     if (!phone) return;
 
+
     const check = async () => {
       const res = await fetch(
         `http://localhost:5000/api/patients/check-payment?phone=${phone}`
@@ -234,7 +235,7 @@ export default function ReceptionistDashboard() {
 
                       {/* 🔥 BUTTON */}
                       <td className="p-2">
-                        {p.status === "WAITING" ? (
+                        {p.status === "NEW" ? (
                           <Button
                             size="sm"
                             onClick={() => sendToDoctor.mutate(p._id)}
