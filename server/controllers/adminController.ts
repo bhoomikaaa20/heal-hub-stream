@@ -80,3 +80,28 @@ export const getDashboard = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Error fetching dashboard" });
     }
 };
+
+export const getPatientHistory = async (req: Request, res: Response) => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = 5; // patients per page
+        const skip = (page - 1) * limit;
+
+        const patients = await Patient.find()
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const total = await Patient.countDocuments();
+
+        res.json({
+            patients,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Error fetching patients" });
+    }
+};
