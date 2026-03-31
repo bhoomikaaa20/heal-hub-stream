@@ -23,7 +23,7 @@ const app: Application = express();
 
 // Middleware
 app.use(cors({
-  origin: "*", // or your frontend URL
+  origin: "https://frabjous-zuccutto-e25bf6.netlify.app", // or your frontend URL
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
