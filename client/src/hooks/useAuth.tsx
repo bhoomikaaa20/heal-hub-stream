@@ -1,8 +1,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-type Role = "receptionist" | "doctor" | "pharmacist";
-
+type Role = "receptionist" | "doctor" | "pharmacist" | "admin";
 interface User {
   email: string;
   role: Role;

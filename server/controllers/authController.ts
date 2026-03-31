@@ -9,7 +9,7 @@ const generateToken = (id: string) => {
     });
 };
 
-// SIGN UP
+// SIGN UP (UNCHANGED)
 export const signUp = async (req: Request, res: Response) => {
     try {
         const { username, email, password, role } = req.body;
@@ -19,13 +19,12 @@ export const signUp = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "User already exists" });
         }
 
-        // 🔥 THIS IS IMPORTANT
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await User.create({
             username,
             email,
-            password: hashedPassword, // ✅ NOT plain password
+            password: hashedPassword,
             role,
         });
 
@@ -39,24 +38,35 @@ export const signUp = async (req: Request, res: Response) => {
     }
 };
 
-// SIGN IN
+// SIGN IN (UPDATED 🔥)
 export const signIn = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 
-        console.log("Login request:", email, password);
+        console.log("Login request:", email);
 
+        // 🔥 HARDCODED ADMIN LOGIN
+        if (email === "admin@gmail.com" && password === "admin@123") {
+            const token = jwt.sign(
+                { role: "admin", email },
+                process.env.JWT_SECRET as string,
+                { expiresIn: "7d" }
+            );
+
+            return res.json({
+                token,
+                role: "admin",
+            });
+        }
+
+        // 🔽 NORMAL USER LOGIN (UNCHANGED)
         const user = await User.findOne({ email });
-        console.log("User found:", user);
 
         if (!user) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
-        console.log("Stored password:", user.password);
-
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log("Password match:", isMatch);
 
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid credentials" });
@@ -67,7 +77,7 @@ export const signIn = async (req: Request, res: Response) => {
             role: user.role,
         });
     } catch (error) {
-        console.log("ERROR:", error); // 🔥 IMPORTANT
+        console.log("ERROR:", error);
         res.status(500).json({ message: "Server error" });
     }
 };

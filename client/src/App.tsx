@@ -29,6 +29,7 @@ function RoleRouter() {
     case "receptionist": return <ReceptionistDashboard />;
     case "doctor": return <DoctorDashboard />;
     case "pharmacist": return <PharmacistDashboard />;
+    case "admin": return <AdminDashboard />;
     default: return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-muted-foreground">No role assigned. Contact admin.</p>
@@ -54,7 +55,6 @@ const App = () => (
             <Route path="/login" element={<AuthGuard><Login /></AuthGuard>} />
             <Route path="/" element={<RoleRouter />} />
             <Route path="*" element={<NotFound />} />
-            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

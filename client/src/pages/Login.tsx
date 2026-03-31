@@ -14,7 +14,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
-  const [role, setRole] = useState<"receptionist" | "doctor" | "pharmacist">("receptionist");
+  const [role, setRole] = useState<"receptionist" | "doctor" | "pharmacist" | "admin">("receptionist");
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();

@@ -6,6 +6,9 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 type DashboardData = {
     totalOPs: number;
@@ -17,12 +20,20 @@ type DashboardData = {
 const AdminDashboard = () => {
     const [data, setData] = useState<DashboardData | null>(null);
 
-    // 🔥 Patient pagination state
     const [patients, setPatients] = useState<any[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    // ✅ EXISTING FUNCTIONALITY (UNCHANGED)
+    const { signOut } = useAuth();
+    const navigate = useNavigate();
+
+    // 🔥 Logout
+    const handleLogout = () => {
+        signOut();
+        navigate("/login");
+    };
+
+    // ✅ Dashboard data (UNCHANGED)
     useEffect(() => {
         const fetchDashboard = async () => {
             try {
@@ -38,7 +49,7 @@ const AdminDashboard = () => {
         fetchDashboard();
     }, []);
 
-    // 🔥 NEW: Fetch patients with pagination
+    // 🔥 Patients (pagination)
     const fetchPatients = async () => {
         try {
             const res = await axios.get(
@@ -55,59 +66,79 @@ const AdminDashboard = () => {
         }
     };
 
-    // 🔥 Load patients
     useEffect(() => {
         fetchPatients();
     }, [page]);
 
     return (
-        <div className="p-6 space-y-6">
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
 
-            {/* 🔥 Stats Cards (UNCHANGED) */}
+            {/* 🔥 Header */}
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-800">
+                    Admin Dashboard
+                </h1>
+
+                <Button
+                    onClick={handleLogout}
+                    className="bg-[#2f9e85] hover:bg-[#267c6a]"
+                >
+                    Logout
+                </Button>
+            </div>
+
+            {/* 🔥 Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
+
+                <Card className="border rounded-xl bg-white">
                     <CardHeader>
-                        <CardTitle>Total OPs</CardTitle>
+                        <CardTitle className="text-sm text-gray-500">
+                            Total OPs
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-2xl font-bold">
+                    <CardContent className="text-2xl font-bold text-gray-800">
                         {data?.totalOPs || 0}
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border rounded-xl bg-white">
                     <CardHeader>
-                        <CardTitle>Pharmacy Revenue</CardTitle>
+                        <CardTitle className="text-sm text-gray-500">
+                            Pharmacy Revenue
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-2xl font-bold">
+                    <CardContent className="text-2xl font-bold text-gray-800">
                         ₹{data?.pharmacyRevenue || 0}
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border rounded-xl bg-white">
                     <CardHeader>
-                        <CardTitle>OP Revenue</CardTitle>
+                        <CardTitle className="text-sm text-gray-500">
+                            OP Revenue
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-2xl font-bold">
+                    <CardContent className="text-2xl font-bold text-gray-800">
                         ₹{data?.opRevenue || 0}
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border rounded-xl bg-white">
                     <CardHeader>
-                        <CardTitle>Today Revenue</CardTitle>
+                        <CardTitle className="text-sm text-gray-500">
+                            Today Revenue
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="text-2xl font-bold">
+                    <CardContent className="text-2xl font-bold text-gray-800">
                         ₹{data?.dailyRevenue || 0}
                     </CardContent>
                 </Card>
+
             </div>
 
-
-
-            {/* 🔥 NEW: Patient History */}
-            <div className="bg-white rounded-xl shadow-sm p-4">
-                <h2 className="text-lg font-semibold mb-4">
+            {/* 🔥 Patient History */}
+            <div className="bg-white border rounded-xl p-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">
                     Patient History
                 </h2>
 
@@ -129,13 +160,30 @@ const AdminDashboard = () => {
                                 patients.map((p, index) => (
                                     <tr
                                         key={index}
-                                        className="border-b hover:bg-gray-50"
+                                        className="border-b hover:bg-gray-50 transition"
                                     >
                                         <td className="p-2">{p.name}</td>
                                         <td className="p-2 text-center">{p.age}</td>
                                         <td className="p-2 text-center">{p.gender}</td>
                                         <td className="p-2 text-center">{p.phone}</td>
-                                        <td className="p-2 text-center">{p.status}</td>
+
+                                        {/* Status */}
+                                        <td className="p-2 text-center">
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium
+                        ${p.status === "NEW"
+                                                        ? "bg-blue-100 text-blue-600"
+                                                        : p.status === "WAITING"
+                                                            ? "bg-yellow-100 text-yellow-700"
+                                                            : p.status === "PRESCRIBED"
+                                                                ? "bg-purple-100 text-purple-600"
+                                                                : "bg-gray-200 text-gray-700"
+                                                    }`}
+                                            >
+                                                {p.status}
+                                            </span>
+                                        </td>
+
                                         <td className="p-2 text-center">
                                             {new Date(p.createdAt).toLocaleDateString()}
                                         </td>
@@ -155,7 +203,7 @@ const AdminDashboard = () => {
                 {/* 🔥 Pagination */}
                 <div className="flex justify-between items-center mt-4">
                     <button
-                        className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+                        className="px-4 py-1 border border-gray-300 rounded hover:bg-gray-100 transition disabled:opacity-50"
                         disabled={page === 1}
                         onClick={() => setPage(page - 1)}
                     >
@@ -167,7 +215,7 @@ const AdminDashboard = () => {
                     </span>
 
                     <button
-                        className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+                        className="px-4 py-1 bg-[#2f9e85] text-white rounded hover:bg-[#267c6a] transition disabled:opacity-50"
                         disabled={page === totalPages}
                         onClick={() => setPage(page + 1)}
                     >
