@@ -1,10 +1,24 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 
-const consultationSchema = new mongoose.Schema(
+export interface IConsultation extends Document {
+    patient_id: mongoose.Types.ObjectId;
+    visit_id: mongoose.Types.ObjectId; // ✅ ADD THIS
+    doctor_id: mongoose.Types.ObjectId;
+    diagnosis?: string;
+    prescription?: string[];
+    notes?: string;
+}
+
+const consultationSchema = new mongoose.Schema<IConsultation>(
     {
         patient_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Patient",
+            required: true,
+        },
+        visit_id: {   // ✅ MAKE SURE THIS EXISTS
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Visit",
             required: true,
         },
         doctor_id: {
@@ -12,20 +26,16 @@ const consultationSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
-
         diagnosis: String,
-        notes: String,
-
-        // ✅ UPDATED
         prescription: [
             {
                 medicineName: String,
                 quantity: Number,
-                price: Number,
             },
         ],
+        notes: String,
     },
     { timestamps: true }
 );
 
-export default mongoose.model("Consultation", consultationSchema);
+export default mongoose.model<IConsultation>("Consultation", consultationSchema);

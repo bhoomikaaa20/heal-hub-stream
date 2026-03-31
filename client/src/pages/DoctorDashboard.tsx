@@ -13,7 +13,7 @@ export default function DoctorDashboard() {
   const [medicineSearch, setMedicineSearch] = useState("");
   const [prescription, setPrescription] = useState<string[]>([]);
 
-  // 🔥 NEW (ONLY ADDITION)
+  // ✅ quantities state
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
 
   const qc = useQueryClient();
@@ -69,9 +69,14 @@ export default function DoctorDashboard() {
     enabled: !!selected,
   });
 
-  // 🔥 SAVE CONSULTATION (UNCHANGED)
+  // 🔥 SAVE CONSULTATION (FIXED)
   const saveConsultation = useMutation({
     mutationFn: async () => {
+      const formattedPrescription = prescription.map((m) => ({
+        medicineName: m,
+        quantity: quantities[m] && quantities[m] > 0 ? quantities[m] : 1,
+      }));
+
       const res = await fetch(
         "http://localhost:5000/api/doctors/consultation",
         {
@@ -84,7 +89,7 @@ export default function DoctorDashboard() {
             patient_id: selected.patient_id._id,
             visit_id: selected._id,
             diagnosis,
-            prescription, // 🔥 unchanged
+            prescription: formattedPrescription, // ✅ FIXED
             notes,
           }),
         }
@@ -145,7 +150,7 @@ export default function DoctorDashboard() {
                 setPrescription([]);
                 setDiagnosis("");
                 setNotes("");
-                setQuantities({}); // 🔥 reset quantities
+                setQuantities({});
               }}
               className="p-2 border-b cursor-pointer hover:bg-muted"
             >
@@ -189,7 +194,6 @@ export default function DoctorDashboard() {
                             if (!prescription.includes(m.name)) {
                               setPrescription([...prescription, m.name]);
 
-                              // 🔥 default quantity = 1
                               setQuantities({
                                 ...quantities,
                                 [m.name]: 1,
@@ -206,7 +210,7 @@ export default function DoctorDashboard() {
                 )}
               </div>
 
-              {/* 🔥 PRESCRIPTION WITH QUANTITY */}
+              {/* PRESCRIPTION */}
               <div className="border p-2 rounded">
                 {prescription.map((m, i) => (
                   <div
@@ -215,15 +219,15 @@ export default function DoctorDashboard() {
                   >
                     <p className="w-40">{m}</p>
 
-                    {/* 🔥 NEW QUANTITY INPUT */}
                     <Input
                       type="number"
+                      min={1}
                       className="w-20"
                       value={quantities[m] || 1}
                       onChange={(e) =>
                         setQuantities({
                           ...quantities,
-                          [m]: Number(e.target.value),
+                          [m]: Number(e.target.value) || 1,
                         })
                       }
                     />
@@ -278,7 +282,7 @@ export default function DoctorDashboard() {
             <p>Select a patient</p>
           )}
 
-          {/* HISTORY (UNCHANGED) */}
+          {/* HISTORY */}
           {selected && (
             <div className="border rounded p-3 mt-4">
               <h2 className="font-bold mb-2">
@@ -299,7 +303,14 @@ export default function DoctorDashboard() {
                     </p>
 
                     <p className="text-sm">
-                      <b>Prescription:</b> {h.prescription.join(", ")}
+                      <b>Prescription:</b>{" "}
+                      {h.prescription
+                        ?.map((m: any) =>
+                          typeof m === "string"
+                            ? m
+                            : `${m.medicineName} (${m.quantity})`
+                        )
+                        .join(", ")}
                     </p>
 
                     <p className="text-sm">

@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Trash2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import AppLayout from "@/components/AppLayout";
@@ -13,22 +12,6 @@ interface BillItem {
   medicineName: string;
   quantity: number;
   price: number;
-}
-
-/* ✅ STATUS BADGE (same as receptionist) */
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    NEW: "bg-status-new/15 text-status-new border-status-new/30",
-    PRESCRIBED: "bg-status-prescribed/15 text-status-prescribed border-status-prescribed/30",
-    IN_PROGRESS: "bg-yellow-100 text-yellow-700 border-yellow-300",
-    COMPLETED: "bg-status-completed/15 text-status-completed border-status-completed/30",
-  };
-
-  return (
-    <Badge variant="outline" className={colors[status] ?? ""}>
-      {status}
-    </Badge>
-  );
 }
 
 export default function PharmacistDashboard() {
@@ -78,6 +61,7 @@ export default function PharmacistDashboard() {
           },
         }
       );
+
       const data = await res.json();
       return data[0];
     },
@@ -114,7 +98,7 @@ export default function PharmacistDashboard() {
     setItems(updated);
   };
 
-  // ✅ ADD MEDICINE
+  // ✅ ADD MEDICINE (UNCHANGED)
   const addMedicineMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("http://localhost:5000/api/medicines", {
@@ -199,42 +183,34 @@ export default function PharmacistDashboard() {
     <AppLayout>
       <div className="grid gap-6 lg:grid-cols-5 h-[calc(100vh-6rem)]">
 
-        {/* LEFT PANEL */}
+        {/* LEFT */}
         <Card className="lg:col-span-2 flex flex-col gap-4 p-4">
+          <h2 className="font-bold mb-2">Patients</h2>
 
-          <div>
-            <h2 className="font-bold mb-2">Patients</h2>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="mb-2"
+          />
 
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="mb-2"
-            />
-
-            <div className="max-h-60 overflow-auto border rounded">
-              {filtered.map((p: any) => (
-                <div
-                  key={p._id}
-                  onClick={() => {
-                    setSelectedId(p._id);
-                    setItems([]);
-                  }}
-                  className="p-2 border-b cursor-pointer hover:bg-gray-100 flex justify-between items-center"
-                >
-                  <div>
-                    <p>{p.name}</p>
-                    <p className="text-xs text-gray-500">{p.patient_id}</p>
-                  </div>
-
-                  {/* ✅ STATUS BADGE */}
-                  <StatusBadge status={p.status} />
-                </div>
-              ))}
-            </div>
+          <div className="max-h-60 overflow-auto border rounded">
+            {filtered.map((p: any) => (
+              <div
+                key={p._id}
+                onClick={() => {
+                  setSelectedId(p._id);
+                  setItems([]);
+                }}
+                className="p-2 border-b cursor-pointer hover:bg-gray-100"
+              >
+                <p>{p.name}</p>
+                <p className="text-xs text-gray-500">{p.patient_id}</p>
+              </div>
+            ))}
           </div>
 
-          {/* ADD MEDICINE */}
+          {/* ADD MEDICINE ✅ */}
           <div className="border rounded p-3">
             <h2 className="font-bold mb-3">Add Medicine</h2>
 
@@ -271,34 +247,33 @@ export default function PharmacistDashboard() {
               Save Medicine
             </Button>
           </div>
-
         </Card>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT */}
         <Card className="lg:col-span-3">
           {selected && consultation ? (
             <CardContent className="flex flex-col gap-4">
 
-              {/* ✅ NAME + STATUS PARALLEL */}
-              <div className="flex items-center justify-between">
-                <h2 className="font-bold text-lg">{selected.name}</h2>
-                <StatusBadge status={selected.status} />
-              </div>
+              <h2 className="font-bold text-lg">{selected.name}</h2>
 
               <div className="border p-3 bg-gray-50 rounded">
                 <p><b>Diagnosis:</b> {consultation.diagnosis}</p>
 
                 <p className="mt-2"><b>Medicines:</b></p>
-                {consultation.prescription?.map((m: string, i: number) => (
-                  <p key={i}>• {m}</p>
+
+                {/* ✅ SAFE RENDER */}
+                {consultation.prescription?.map((m: any, i: number) => (
+                  <p key={i}>
+                    • {typeof m === "string"
+                      ? m
+                      : `${m?.medicineName || "Unknown"} (${m?.quantity || 1})`}
+                  </p>
                 ))}
 
-                <p className="mt-2">
-                  <b>Notes:</b> {consultation.notes}
-                </p>
+                <p className="mt-2"><b>Notes:</b> {consultation.notes}</p>
               </div>
 
-              {/* SEARCH MEDICINE */}
+              {/* SEARCH */}
               <div className="relative">
                 <Input
                   placeholder="Search medicine..."
@@ -338,14 +313,13 @@ export default function PharmacistDashboard() {
               {/* ITEMS */}
               {items.map((item, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
-
                   <div className="w-40">{item.medicineName}</div>
 
                   <Input
                     type="number"
                     value={item.quantity}
                     onChange={(e) =>
-                      updateItem(idx, "quantity", parseInt(e.target.value) || 0)
+                      updateItem(idx, "quantity", parseInt(e.target.value) || 1)
                     }
                   />
 
