@@ -11,6 +11,7 @@ import billRoutes from "./routes/billRoutes";
 import visitRoutes from "./routes/visitRoutes";
 import doctorRoutes from "./routes/doctorRoutes";
 import medicineRoutes from "./routes/medicineRoutes";
+import adminRoutes from "./routes/adminRoutes"
 
 
 
@@ -36,6 +37,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/bills", billRoutes);
 app.use("/api/visits", visitRoutes);
 app.use("/api/medicines", medicineRoutes);
+app.use("/api/admin", adminRoutes);
 
 
 app.get("/api/test", (req, res) => {

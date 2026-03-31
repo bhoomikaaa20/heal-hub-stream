@@ -8,6 +8,7 @@ import ReceptionistDashboard from "@/pages/ReceptionistDashboard";
 import DoctorDashboard from "@/pages/DoctorDashboard";
 import PharmacistDashboard from "@/pages/PharmacistDashboard";
 import NotFound from "@/pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/login" element={<AuthGuard><Login /></AuthGuard>} />
             <Route path="/" element={<RoleRouter />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/admin" element={<AdminDashboard />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
