@@ -32,7 +32,7 @@ export default function PharmacistDashboard() {
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const res = await fetch("http://localhost:5000/api/patients", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/patients", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -54,7 +54,7 @@ export default function PharmacistDashboard() {
     enabled: !!selectedId,
     queryFn: async () => {
       const res = await fetch(
-        `http://localhost:5000/api/consultations/${selectedId}`,
+        `https://heal-hub-stream-8.onrender.com/api/consultations/${selectedId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -71,7 +71,7 @@ export default function PharmacistDashboard() {
   const { data: medicines = [] } = useQuery({
     queryKey: ["medicines"],
     queryFn: async () => {
-      const res = await fetch("http://localhost:5000/api/medicines", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/medicines", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -101,7 +101,7 @@ export default function PharmacistDashboard() {
   // ✅ ADD MEDICINE (UNCHANGED)
   const addMedicineMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("http://localhost:5000/api/medicines", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/medicines", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -141,7 +141,7 @@ export default function PharmacistDashboard() {
   // ✅ BILLING
   const completeBilling = useMutation({
     mutationFn: async () => {
-      const res = await fetch("http://localhost:5000/api/bills", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/bills", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

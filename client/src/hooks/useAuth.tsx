@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 🔐 LOGIN
   const signIn = async (email: string, password: string) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 🆕 SIGNUP
   const signUp = async (email: string, password: string, role: Role, username: string) => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/signup", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/auth/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

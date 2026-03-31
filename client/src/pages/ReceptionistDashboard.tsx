@@ -40,7 +40,7 @@ export default function ReceptionistDashboard() {
 
     const check = async () => {
       const res = await fetch(
-        `http://localhost:5000/api/patients/check-payment?phone=${phone}`
+        `https://heal-hub-stream-8.onrender.com/api/patients/check-payment?phone=${phone}`
       );
       const data = await res.json();
       setRequiresPayment(data.payment_required);
@@ -53,7 +53,7 @@ export default function ReceptionistDashboard() {
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const res = await fetch("http://localhost:5000/api/patients");
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/patients");
       return res.json();
     },
   });
@@ -62,7 +62,7 @@ export default function ReceptionistDashboard() {
   const { data: doctors = [] } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const res = await fetch("http://localhost:5000/api/doctors");
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/doctors");
       return res.json();
     },
     retry: false,
@@ -71,7 +71,7 @@ export default function ReceptionistDashboard() {
   // 🔥 CREATE PATIENT + VISIT
   const createPatient = useMutation({
     mutationFn: async () => {
-      const res = await fetch("http://localhost:5000/api/patients", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,7 +111,7 @@ export default function ReceptionistDashboard() {
   //send to doctor
   const sendToDoctor = useMutation({
     mutationFn: async (patient_id: string) => {
-      const res = await fetch("http://localhost:5000/api/visits/send", {
+      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/visits/send", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
