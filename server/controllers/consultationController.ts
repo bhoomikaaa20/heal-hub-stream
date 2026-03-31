@@ -2,29 +2,41 @@ import { Request, Response } from "express";
 import Consultation from "../models/Consultation";
 import Patient from "../models/Patient";
 
-// CREATE CONSULTATION
 export const createConsultation = async (req: any, res: Response) => {
     try {
-        const { patient_id, prescription } = req.body;
+        const { patient_id, prescription, diagnosis, notes } = req.body;
+
+        // ✅ SUPPORT OLD + NEW FORMAT
+        const formattedPrescription = prescription.map((item: any) => {
+            if (typeof item === "string") {
+                return {
+                    medicineName: item,
+                    quantity: 1,
+                    price: 0,
+                };
+            }
+            return item;
+        });
 
         const consultation = await Consultation.create({
             patient_id,
-            doctor_id: req.user.id, // from JWT
-            prescription,
+            doctor_id: req.user.id,
+            diagnosis,
+            notes,
+            prescription: formattedPrescription,
         });
 
-        // update patient status
         await Patient.findByIdAndUpdate(patient_id, {
             status: "PRESCRIBED",
         });
 
         res.json(consultation);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: "Error saving consultation" });
     }
 };
 
-// GET CONSULTATIONS BY PATIENT
 export const getConsultations = async (req: Request, res: Response) => {
     try {
         const consultations = await Consultation.find({

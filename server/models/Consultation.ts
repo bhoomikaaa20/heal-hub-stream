@@ -7,11 +7,6 @@ const consultationSchema = new mongoose.Schema(
             ref: "Patient",
             required: true,
         },
-        visit_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Visit",
-            required: true,
-        },
         doctor_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
@@ -19,8 +14,16 @@ const consultationSchema = new mongoose.Schema(
         },
 
         diagnosis: String,
-        prescription: [String], // list of medicines
         notes: String,
+
+        // ✅ UPDATED
+        prescription: [
+            {
+                medicineName: String,
+                quantity: Number,
+                price: Number,
+            },
+        ],
     },
     { timestamps: true }
 );

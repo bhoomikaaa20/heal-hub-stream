@@ -13,9 +13,12 @@ export default function DoctorDashboard() {
   const [medicineSearch, setMedicineSearch] = useState("");
   const [prescription, setPrescription] = useState<string[]>([]);
 
+  // 🔥 NEW (ONLY ADDITION)
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+
   const qc = useQueryClient();
 
-  // 🔥 FETCH MEDICINES FROM DB
+  // 🔥 FETCH MEDICINES
   const { data: medicines = [] } = useQuery({
     queryKey: ["medicines"],
     queryFn: async () => {
@@ -66,7 +69,7 @@ export default function DoctorDashboard() {
     enabled: !!selected,
   });
 
-  // 🔥 SAVE CONSULTATION
+  // 🔥 SAVE CONSULTATION (UNCHANGED)
   const saveConsultation = useMutation({
     mutationFn: async () => {
       const res = await fetch(
@@ -81,7 +84,7 @@ export default function DoctorDashboard() {
             patient_id: selected.patient_id._id,
             visit_id: selected._id,
             diagnosis,
-            prescription,
+            prescription, // 🔥 unchanged
             notes,
           }),
         }
@@ -130,7 +133,7 @@ export default function DoctorDashboard() {
     <AppLayout>
       <div className="grid grid-cols-5 gap-4 h-[90vh]">
 
-        {/* 🔥 LEFT: QUEUE */}
+        {/* LEFT */}
         <div className="col-span-2 border rounded p-2 overflow-auto">
           <h2 className="font-bold mb-2">Queue</h2>
 
@@ -142,6 +145,7 @@ export default function DoctorDashboard() {
                 setPrescription([]);
                 setDiagnosis("");
                 setNotes("");
+                setQuantities({}); // 🔥 reset quantities
               }}
               className="p-2 border-b cursor-pointer hover:bg-muted"
             >
@@ -153,7 +157,7 @@ export default function DoctorDashboard() {
           ))}
         </div>
 
-        {/* 🔥 RIGHT */}
+        {/* RIGHT */}
         <div className="col-span-3 border rounded p-4 flex flex-col gap-3 overflow-auto">
 
           {selected ? (
@@ -162,7 +166,7 @@ export default function DoctorDashboard() {
                 {selected.patient_id.name}
               </h2>
 
-              {/* 🔥 GLOBAL MEDICINE SEARCH */}
+              {/* SEARCH */}
               <div className="relative">
                 <Input
                   placeholder="Search medicine..."
@@ -184,6 +188,12 @@ export default function DoctorDashboard() {
                           onClick={() => {
                             if (!prescription.includes(m.name)) {
                               setPrescription([...prescription, m.name]);
+
+                              // 🔥 default quantity = 1
+                              setQuantities({
+                                ...quantities,
+                                [m.name]: 1,
+                              });
                             }
                             setMedicineSearch("");
                           }}
@@ -196,21 +206,39 @@ export default function DoctorDashboard() {
                 )}
               </div>
 
-              {/* 🔥 PRESCRIPTION */}
+              {/* 🔥 PRESCRIPTION WITH QUANTITY */}
               <div className="border p-2 rounded">
                 {prescription.map((m, i) => (
                   <div
                     key={i}
-                    className="flex justify-between items-center"
+                    className="flex justify-between items-center gap-2"
                   >
-                    <p>{m}</p>
+                    <p className="w-40">{m}</p>
+
+                    {/* 🔥 NEW QUANTITY INPUT */}
+                    <Input
+                      type="number"
+                      className="w-20"
+                      value={quantities[m] || 1}
+                      onChange={(e) =>
+                        setQuantities({
+                          ...quantities,
+                          [m]: Number(e.target.value),
+                        })
+                      }
+                    />
+
                     <button
                       className="text-red-500"
-                      onClick={() =>
+                      onClick={() => {
                         setPrescription(
                           prescription.filter((_, idx) => idx !== i)
-                        )
-                      }
+                        );
+
+                        const updated = { ...quantities };
+                        delete updated[m];
+                        setQuantities(updated);
+                      }}
                     >
                       ❌
                     </button>
@@ -218,21 +246,21 @@ export default function DoctorDashboard() {
                 ))}
               </div>
 
-              {/* 🔥 DIAGNOSIS */}
+              {/* DIAGNOSIS */}
               <Textarea
                 placeholder="Diagnosis"
                 value={diagnosis}
                 onChange={(e) => setDiagnosis(e.target.value)}
               />
 
-              {/* 🔥 NOTES */}
+              {/* NOTES */}
               <Textarea
                 placeholder="Notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
 
-              {/* 🔥 BUTTONS */}
+              {/* BUTTONS */}
               <div className="flex gap-2">
                 <Button onClick={() => saveConsultation.mutate()}>
                   Save
@@ -250,7 +278,7 @@ export default function DoctorDashboard() {
             <p>Select a patient</p>
           )}
 
-          {/* 🔥 HISTORY */}
+          {/* HISTORY (UNCHANGED) */}
           {selected && (
             <div className="border rounded p-3 mt-4">
               <h2 className="font-bold mb-2">
