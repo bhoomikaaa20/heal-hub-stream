@@ -38,7 +38,7 @@ const AdminDashboard = () => {
         const fetchDashboard = async () => {
             try {
                 const res = await axios.get(
-                    "https://heal-hub-stream-8.onrender.com/api/admin/dashboard"
+                    "https://heal-hub-stream-10.onrender.com/api/admin/dashboard"
                 );
                 setData(res.data);
             } catch (err) {
@@ -53,7 +53,7 @@ const AdminDashboard = () => {
     const fetchPatients = async () => {
         try {
             const res = await axios.get(
-                "https://heal-hub-stream-8.onrender.com/api/admin/patients-history",
+                "https://heal-hub-stream-10.onrender.com/api/admin/patients-history",
                 {
                     params: { page },
                 }

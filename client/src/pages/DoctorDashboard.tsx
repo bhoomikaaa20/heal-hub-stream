@@ -22,7 +22,7 @@ export default function DoctorDashboard() {
   const { data: medicines = [] } = useQuery({
     queryKey: ["medicines"],
     queryFn: async () => {
-      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/medicines", {
+      const res = await fetch("https://heal-hub-stream-10.onrender.com/api/medicines", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -37,7 +37,7 @@ export default function DoctorDashboard() {
   const { data: visits = [] } = useQuery({
     queryKey: ["doctor-queue"],
     queryFn: async () => {
-      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/doctors/queue", {
+      const res = await fetch("https://heal-hub-stream-10.onrender.com/api/doctors/queue", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -55,7 +55,7 @@ export default function DoctorDashboard() {
       if (!selected) return [];
 
       const res = await fetch(
-        `https://heal-hub-stream-8.onrender.com/api/doctors/history?patient_id=${selected.patient_id._id}`,
+        `https://heal-hub-stream-10.onrender.com/api/doctors/history?patient_id=${selected.patient_id._id}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -78,7 +78,7 @@ export default function DoctorDashboard() {
       }));
 
       const res = await fetch(
-        "https://heal-hub-stream-8.onrender.com/api/doctors/consultation",
+        "https://heal-hub-stream-10.onrender.com/api/doctors/consultation",
         {
           method: "POST",
           headers: {
@@ -110,7 +110,7 @@ export default function DoctorDashboard() {
   // 🔥 SEND TO PHARMACY
   const sendToPharmacy = useMutation({
     mutationFn: async () => {
-      const res = await fetch("https://heal-hub-stream-8.onrender.com/api/doctors/send", {
+      const res = await fetch("https://heal-hub-stream-10.onrender.com/api/doctors/send", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
